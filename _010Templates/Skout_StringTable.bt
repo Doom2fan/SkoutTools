@@ -8,10 +8,10 @@
 
 LittleEndian();
 
-struct BIT_File {
+struct SkoutStringTable_File {
     short Count;
 
-    struct SKT_String {
+    struct SkoutStringTable_String {
         short StringId;
         short LanguageId;
         short StringOffset;

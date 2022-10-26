@@ -18,6 +18,8 @@ struct SkoutTex_File {
         ushort Unknown1;
         ushort Offset;
     } MipLevels [MipCount];
+
+    ushort Unknown2;
 } file;
 
 return 0;
