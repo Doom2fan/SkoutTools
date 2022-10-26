@@ -1,0 +1,60 @@
+//------------------------------------------------
+//      File: BIT.bt
+//    Author: Chronos Ouroboros
+//   Version: 1.0
+//   Purpose: Parse BIT archive files.
+//  Category: Game
+// File Mask: *.bit
+//  ID Bytes: 42 49 54 50 // BITP
+//------------------------------------------------
+
+LittleEndian();
+
+typedef enum <byte> {
+    Copy  = 0,
+    RLE   = 1,
+    LZRLE = 2,
+} BIT_CompressionMode;
+
+struct BIT_File {
+    struct BIT_Header {
+        char IdMagic [4];
+        if (IdMagic != "BITP") {
+            Warning ("Not a BIT file.");
+            Exit (-1);
+        }
+
+        ushort Revision;
+        uint EntryCount;
+    } header;
+
+    struct BIT_Entry {
+        uint Id <format=hex>;
+        uint Offset;
+        uint Length;
+        uint Hash <format=hex>;
+        byte Flags <format=hex>;
+    } entries [header.EntryCount] <read=ReadBITEntry>;
+
+    struct BIT_EntriesData {
+        local int i;
+        for (i = 0; i < header.EntryCount; i++) {
+            FSeek (entries [i].Offset);
+            struct BIT_EntryData {
+                BIT_CompressionMode CompressionMode;
+                byte Flags <format=hex>;
+                byte B [2] <comment="Currently unknown">;
+                uint Length;
+                ushort UncompressedBytes;
+            } entryData;
+        }
+    } entriesData;
+} file;
+
+string ReadBITEntry (BIT_Entry &entry) {
+    string ret;
+    SPrintf (ret, "%8X", entry.Id);
+    return ret;
+}
+
+return 0;

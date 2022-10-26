@@ -1,0 +1,23 @@
+//------------------------------------------------
+//      File: Skout_Texture.bt
+//    Author: Chronos Ouroboros
+//   Version: 1.0
+//   Purpose: Parse Skout textures.
+//  Category: Game
+//------------------------------------------------
+
+LittleEndian();
+
+struct SkoutTex_File {
+    ushort Width;
+    ushort Height;
+    ushort MipCount;
+    ushort Unknown1;
+
+    struct SkoutTex_Mip {
+        ushort Unknown1;
+        ushort Offset;
+    } MipLevels [MipCount];
+} file;
+
+return 0;

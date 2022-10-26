@@ -1,0 +1,27 @@
+//------------------------------------------------
+//      File: Skout_StringTable.bt
+//    Author: Chronos Ouroboros
+//   Version: 1.0
+//   Purpose: Parse Skout string tables.
+//  Category: Game
+//------------------------------------------------
+
+LittleEndian();
+
+struct BIT_File {
+    short Count;
+
+    struct SKT_String {
+        short StringId;
+        short LanguageId;
+        short StringOffset;
+
+        local int curPos = FTell ();
+        local int stringLen = ReadStringLength (StringOffset, -1);
+        FSeek (StringOffset);
+        char Data [stringLen];
+        FSeek (curPos);
+    } Strings [Count] < optimize = false >;
+} file;
+
+return 0;
