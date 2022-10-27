@@ -12,6 +12,6 @@ struct SkoutAudioFile {
     ushort SampleRate;
     byte Unknown1;
     uint SampleCount;
-} file;
+} file <open=true>;
 
 return 0;

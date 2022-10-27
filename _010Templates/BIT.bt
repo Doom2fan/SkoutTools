@@ -48,7 +48,7 @@ struct BIT_File {
             } entryData;
         }
     } entriesData;
-} file;
+} file <open=true>;
 
 string ReadBITEntry (BIT_Entry &entry) {
     string ret;

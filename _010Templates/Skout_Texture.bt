@@ -18,6 +18,6 @@ struct SkoutTex_File {
     struct SkoutTex_Mip {
         uint Offset;
     } MipLevels [MipCount];
-} file;
+} file <open=true>;
 
 return 0;

@@ -22,6 +22,6 @@ struct SkoutStringTable_File {
         char Data [stringLen];
         FSeek (curPos);
     } Strings [Count] < optimize = false >;
-} file;
+} file <open=true>;
 
 return 0;
