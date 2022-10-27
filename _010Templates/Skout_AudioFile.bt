@@ -1,0 +1,17 @@
+//------------------------------------------------
+//      File: Skout_AudioFile.bt
+//    Author: Chronos Ouroboros
+//   Version: 1.0
+//   Purpose: Parse Skout audio files.
+//  Category: Game
+//------------------------------------------------
+
+LittleEndian();
+
+struct SkoutAudioFile {
+    ushort SampleRate;
+    byte Unknown1;
+    uint SampleCount;
+} file;
+
+return 0;
