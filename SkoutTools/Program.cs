@@ -172,10 +172,11 @@ class Program {
     }
 
     static int ExtractBit_DoExtract (ExtractOptions options, BitFile bitFile) {
+        Directory.CreateDirectory (options.OutputDirectory);
 
         foreach (var entry in bitFile.Entries) {
-            var paf = Path.Combine (options.OutputDirectory, $"{entry.Id:X8}.bin");
-            using var fs = new FileStream (paf, FileMode.Create, FileAccess.Write);
+            var path = Path.Combine (options.OutputDirectory, $"{entry.Id:X8}.bin");
+            using var fs = new FileStream (path, FileMode.Create, FileAccess.Write);
             fs.Write (entry.Bytes);
         }
 
