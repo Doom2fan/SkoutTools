@@ -13,13 +13,11 @@ struct SkoutTex_File {
     ushort Height;
     ushort MipCount;
     ushort Unknown1;
+    ushort Unknown2;
 
     struct SkoutTex_Mip {
-        ushort Unknown1;
-        ushort Offset;
+        uint Offset;
     } MipLevels [MipCount];
-
-    ushort Unknown2;
 } file;
 
 return 0;

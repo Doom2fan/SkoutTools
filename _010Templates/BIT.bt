@@ -33,7 +33,7 @@ struct BIT_File {
         uint Offset;
         uint Length;
         uint Hash <format=hex>;
-        byte Flags <format=hex>;
+        byte FileIdentA <format=hex>;
     } entries [header.EntryCount] <read=ReadBITEntry>;
 
     struct BIT_EntriesData {
@@ -42,8 +42,7 @@ struct BIT_File {
             FSeek (entries [i].Offset);
             struct BIT_EntryData {
                 BIT_CompressionMode CompressionMode;
-                byte Flags <format=hex>;
-                byte B [2] <comment="Currently unknown">;
+                byte FileIdent [3] <format=hex>;
                 uint Length;
                 ushort UncompressedBytes;
             } entryData;
