@@ -18,19 +18,7 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-using CommandLine;
-
 namespace SkoutTools;
 
-static partial class Program {
-    private static int Main (string [] args) {
-        return Parser.Default.ParseArguments<
-            BitUtils.ExtractOptions,
-            BitUtils.ListOptions
-        > (args).MapResult (
-            (BitUtils.ExtractOptions options) => new BitUtils ().ExtractBit (options),
-            (BitUtils.ListOptions options) => new BitUtils ().ListBit (options),
-            errors => 1
-        );
-    }
+internal partial class BitUtils {
 }

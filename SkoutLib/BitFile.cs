@@ -25,6 +25,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using ChronosLib;
 
 namespace SkoutLib;
 
@@ -39,8 +40,7 @@ internal ref struct CmpHeader {
     public const int HeaderLength = 4 + 4 + 2;
 
     public CompressionKind CompressionMode;
-    public byte FileType;
-    public (byte, byte) Ident;
+    public BitFileIdent FileIdent;
     public uint Length;
     public ushort UncompressedBytes;
 }
@@ -51,17 +51,56 @@ internal struct BitEntryHeader {
     public uint Offset;
     public uint Length;
     public uint Hash;
-    public byte FileType;
+    public byte FileIdentA;
+}
+
+[StructLayout (LayoutKind.Sequential, Pack = 1)]
+public readonly struct BitFileIdent : IEquatable<BitFileIdent>, IEquatable<(byte A, byte B, byte C)> {
+    public readonly byte A { get; init; }
+    public readonly byte B { get; init; }
+    public readonly byte C { get; init; }
+
+    public BitFileIdent (byte a, byte b, byte c) {
+        A = a;
+        B = b;
+        C = c;
+    }
+
+    public static implicit operator (byte, byte, byte) (BitFileIdent id) => (id.A, id.B, id.C);
+    public static implicit operator BitFileIdent ((byte A, byte B, byte C) id) => new (id.A, id.B, id.C);
+
+    public static bool operator == (BitFileIdent lhs, BitFileIdent rhs) => lhs.Equals (rhs);
+    public static bool operator != (BitFileIdent lhs, BitFileIdent rhs) => !lhs.Equals (rhs);
+
+    public bool Equals (BitFileIdent id) => A == id.A && B == id.B && C == id.C;
+    public bool Equals ((byte A, byte B, byte C) id) => A == id.A && B == id.B && C == id.C;
+    public override bool Equals ([NotNullWhen (true)] object obj) {
+        if (obj is BitFileIdent id)
+            return Equals (id);
+        else if (obj is ValueTuple<byte, byte, byte> idTuple)
+            return Equals (idTuple);
+
+        return false;
+    }
+
+    public override int GetHashCode () => (A, B, C).GetHashCode ();
+
+    public override string ToString () => $"{A:X2}-{B:X2}-{C:X2}";
+
+    public void Deconstruct (out byte a, out byte b, out byte c) {
+        a = A;
+        b = B;
+        c = C;
+    }
 }
 
 public readonly struct BitEntry {
     public readonly uint Id { get; init; }
     public readonly uint Hash { get; init; }
-    public readonly byte FileType { get; init; }
+    public readonly BitFileIdent FileIdent { get; init; }
 
     public readonly CompressionKind CompressionMode { get; init; }
 
-    public readonly (byte, byte) Ident { get; init; }
     public readonly ushort UncompressedBytes { get; init; }
 
     public readonly byte [] Bytes { get; init; }
@@ -69,7 +108,7 @@ public readonly struct BitEntry {
 
 public delegate void InvalidMagicDelegate (ReadOnlySpan<byte> magic);
 
-public unsafe struct BitFile {
+public unsafe class BitFile {
     public readonly ref struct ReadResult {
         public enum ValueType {
             Success,
@@ -232,7 +271,7 @@ public unsafe struct BitFile {
                     inLength = 3;
 
                     // Distance to copy from (out - distance)
-                    var distance = BitConverter.ToUInt16 (inBytes [1..]);
+                    var distance = BitConversion.LittleEndian.ToUInt16 (inBytes [1..]);
 
                     retSpan.Slice (bytesCount - distance, outLength).CopyTo (outBytes [..outLength]);
                 }
@@ -254,35 +293,37 @@ public unsafe struct BitFile {
 
     private static BitEntryHeader ReadEntryHeader (ReadOnlySpan<byte> inBytes) {
         return new BitEntryHeader {
-            Id = BitConverter.ToUInt32 (inBytes),
-            Offset = BitConverter.ToUInt32 (inBytes [4..8]),
-            Length = BitConverter.ToUInt32 (inBytes [8..12]),
-            Hash = BitConverter.ToUInt32 (inBytes [12..16]),
-            FileType = inBytes [16],
+            Id = BitConversion.LittleEndian.ToUInt32 (inBytes),
+            Offset = BitConversion.LittleEndian.ToUInt32 (inBytes [4..8]),
+            Length = BitConversion.LittleEndian.ToUInt32 (inBytes [8..12]),
+            Hash = BitConversion.LittleEndian.ToUInt32 (inBytes [12..16]),
+            FileIdentA = inBytes [16],
         };
     }
 
     private static CmpHeader ReadCmpHeader (ReadOnlySpan<byte> bytes) {
         return new CmpHeader {
             CompressionMode = (CompressionKind) bytes [0],
-            FileType = bytes [1],
-            Ident = (bytes [2], bytes [3]),
-            Length = BitConverter.ToUInt32 (bytes [4..8]),
-            UncompressedBytes = BitConverter.ToUInt16 (bytes [8..10]),
+            FileIdent = (bytes [1], bytes [2], bytes [3]),
+            Length = BitConversion.LittleEndian.ToUInt32 (bytes [4..8]),
+            UncompressedBytes = BitConversion.LittleEndian.ToUInt16 (bytes [8..10]),
         };
     }
 
     public static ReadResult ReadFile (ReadOnlySpan<byte> inBytes) {
-        var magic = inBytes [..4];
-        if (magic [0] != 'B' || magic [1] != 'I' || magic [2] != 'T' || magic [3] != 'P')
-            return new (magic);
+        const int bitHeaderSize = sizeof (byte) * 4 + sizeof (ushort) + sizeof (uint);
+        if (inBytes.Length < bitHeaderSize)
+            return ReadResult.NewMalformedFile ();
 
-        var headerRevision = BitConverter.ToUInt16 (inBytes [4..]);
-        var headerEntryCount = BitConverter.ToUInt32 (inBytes [6..]);
+        if (inBytes [0] != 'B' || inBytes [1] != 'I' || inBytes [2] != 'T' || inBytes [3] != 'P')
+            return new (inBytes [..4]);
+
+        var headerRevision = BitConversion.LittleEndian.ToUInt16 (inBytes [4..]);
+        var headerEntryCount = BitConversion.LittleEndian.ToUInt32 (inBytes [6..]);
 
         var entries = new BitEntry [headerEntryCount];
 
-        var directoryBytes = inBytes.Slice (10, (int) (sizeof (BitEntryHeader) * headerEntryCount));
+        var directoryBytes = inBytes.Slice (bitHeaderSize, (int) (sizeof (BitEntryHeader) * headerEntryCount));
         for (int i = 0; i < headerEntryCount; i++) {
             var entryHeader = ReadEntryHeader (directoryBytes);
             directoryBytes = directoryBytes [sizeof (BitEntryHeader)..];
@@ -296,7 +337,7 @@ public unsafe struct BitFile {
             if (cmpHeader.UncompressedBytes > cmpHeader.Length)
                 return ReadResult.NewMalformedFile ();
 
-            if (entryHeader.FileType != cmpHeader.FileType)
+            if (entryHeader.FileIdentA != cmpHeader.FileIdent.A)
                 return ReadResult.NewMalformedFile ();
 
             byte [] entryBytes;
@@ -317,11 +358,10 @@ public unsafe struct BitFile {
             entries [i] = new () {
                 Id = entryHeader.Id,
                 Hash = entryHeader.Hash,
-                FileType = entryHeader.FileType,
+                FileIdent = cmpHeader.FileIdent,
 
                 CompressionMode = cmpHeader.CompressionMode,
 
-                Ident = cmpHeader.Ident,
                 UncompressedBytes = cmpHeader.UncompressedBytes,
 
                 Bytes = entryBytes,
@@ -451,12 +491,12 @@ public unsafe struct BitFile {
             header.Id = entry.Id;
             header.Offset = (uint) writer.BaseStream.Position;
             header.Hash = entry.Hash;
-            header.FileType = entry.FileType;
+            header.FileIdentA = entry.FileIdent.A;
 
             writer.Write ((byte) entry.CompressionMode);
-            writer.Write (entry.FileType);
-            writer.Write (entry.Ident.Item1);
-            writer.Write (entry.Ident.Item2);
+            writer.Write (entry.FileIdent.A);
+            writer.Write (entry.FileIdent.B);
+            writer.Write (entry.FileIdent.C);
             writer.Write ((uint) entry.Bytes.Length);
             writer.Write (entry.UncompressedBytes);
 
@@ -489,7 +529,7 @@ public unsafe struct BitFile {
             writer.Write (header.Offset);
             writer.Write (header.Length);
             writer.Write (header.Hash);
-            writer.Write (header.FileType);
+            writer.Write (header.FileIdentA);
         }
 
         writer.Flush ();

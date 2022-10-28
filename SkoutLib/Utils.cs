@@ -18,19 +18,26 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-using CommandLine;
+namespace SkoutLib;
 
-namespace SkoutTools;
+public class SkoutUtils {
+    public static int DecodeARGB1555 (ushort pixel) {
+        static int Conv5To8 (int val) => (int) (uint) ((float) val / 0x1F * 0xFF);
+        return (
+            ((pixel & 0x8000) != 0 ? 0xFF << 24 : 0) |
+            Conv5To8 ((pixel & 0x7C00) >> 10) << 16 |
+            Conv5To8 ((pixel & 0x03E0) >>  5) <<  8 |
+            Conv5To8 ( pixel & 0x001F       )
+        );
+    }
 
-static partial class Program {
-    private static int Main (string [] args) {
-        return Parser.Default.ParseArguments<
-            BitUtils.ExtractOptions,
-            BitUtils.ListOptions
-        > (args).MapResult (
-            (BitUtils.ExtractOptions options) => new BitUtils ().ExtractBit (options),
-            (BitUtils.ListOptions options) => new BitUtils ().ListBit (options),
-            errors => 1
+    public static int DecodeARGB4444 (ushort pixel) {
+        static int Conv4To8 (int val) => (int) (uint) ((float) val / 0x0F * 0xFF);
+        return (
+            Conv4To8 ((pixel & 0xF000) >> 12) << 24 |
+            Conv4To8 ((pixel & 0x0F00) >>  8) << 16 |
+            Conv4To8 ((pixel & 0x00F0) >>  4) << 8  |
+            Conv4To8 ( pixel & 0x000F       )
         );
     }
 }

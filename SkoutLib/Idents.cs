@@ -18,19 +18,22 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-using CommandLine;
+namespace SkoutLib;
 
-namespace SkoutTools;
+public static class SkoutIdents {
+    public static BitFileIdent IdentPalette => (0x01, 0x00, 0xFF);
 
-static partial class Program {
-    private static int Main (string [] args) {
-        return Parser.Default.ParseArguments<
-            BitUtils.ExtractOptions,
-            BitUtils.ListOptions
-        > (args).MapResult (
-            (BitUtils.ExtractOptions options) => new BitUtils ().ExtractBit (options),
-            (BitUtils.ListOptions options) => new BitUtils ().ListBit (options),
-            errors => 1
-        );
+    /// <summary>Checks if an ident is a texture.</summary>
+    /// <param name="ident">The ident to check.</param>
+    /// <param name="palette">The texture's palette. -1 if not paletted.</param>
+    /// <returns>A value indicating whether the ident is a texture.</returns>
+    public static bool IsTexture (BitFileIdent ident, out int palette) {
+        if (ident.A == 0x04 && ident.B == 0x0C) {
+            palette = ident.C == 0xFF ? -1 : ident.C;
+            return true;
+        }
+
+        palette = 0;
+        return false;
     }
 }

@@ -12,4 +12,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ChronosLib" Version="3.0.0" />
+  </ItemGroup>
+
 </Project>
