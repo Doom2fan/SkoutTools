@@ -40,9 +40,9 @@ public readonly struct ST_PalColor {
 
         for (int i = 0; i < ColCount; i++) {
             colors [i] = new () {
-                R = bytes [i * 3 + 2],
+                R = bytes [i * 3 + 0],
                 G = bytes [i * 3 + 1],
-                B = bytes [i * 3 + 0],
+                B = bytes [i * 3 + 2],
             };
         }
     }
