@@ -12,8 +12,8 @@ struct SkoutTex_File {
     ushort Width;
     ushort Height;
     ushort MipCount;
-    ushort Unknown1;
-    ushort Unknown2;
+    ushort Data1;
+    ushort Data2;
 
     struct SkoutTex_Mip {
         uint Offset;
