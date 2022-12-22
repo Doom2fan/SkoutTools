@@ -1,4 +1,5 @@
 # SkoutTools
+[![Discord Shield](https://discordapp.com/api/guilds/1055611152085819443/widget.png?style=shield)](https://discord.gg/4eH4EDdUPD)  
 SkoutTools is a project to create tools for the game "Skout", a 1999 FPS game for Windows.
 
 # Usage
@@ -7,3 +8,4 @@ Palettes can be read from the current file or a `palettes` folder in the same fo
 
 # Links
 [SkoutTools on GitHub](https://github.com/Doom2fan/SkoutTools)
+[Discord server](https://discord.gg/4eH4EDdUPD)
