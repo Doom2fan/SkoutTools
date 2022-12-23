@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
+  "version": "0.1.0-pre.{height}",
+  "pathFilters": ["."],
+  "publicReleaseRefSpec": [
+    "^refs/tags/tools_v*" // we release tags starting with tools_v*
+  ],
+  "cloudBuild": {
+    "buildNumber": {
+      "enabled": false
+    }
+  }
+}
