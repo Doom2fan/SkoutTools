@@ -7,5 +7,5 @@ Run `SkoutTools.exe help` to get a listing of all commands. You can use `SkoutTo
 Palettes can be read from the current file or a `palettes` folder in the same folder as the SkoutTools binary.
 
 # Links
-[SkoutTools on GitHub](https://github.com/Doom2fan/SkoutTools)
+[SkoutTools on GitHub](https://github.com/Doom2fan/SkoutTools)  
 [Discord server](https://discord.gg/4eH4EDdUPD)
