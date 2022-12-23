@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  LIB_DIR: SkoutLib
+  LIB_NAME: SkoutLib.csproj
+  TOOLS_DIR: SkoutTools
+  TOOLS_NAME: SkoutTools.csproj
+
+jobs:
+  build:
+    name: Build SkoutLib and SkoutTools
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      ARTIFACTS_PATH: ${{ github.workspace }}/artifacts
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+
+      - name: Get version, build, and pack
+        run: |
+          echo Cleaning up...
+          rm -rf $ARTIFACTS_PATH || true
+          mkdir $ARTIFACTS_PATH
+
+          dotnet clean $LIB_DIR/$LIB_NAME
+          dotnet clean $TOOLS_DIR/$TOOLS_NAME
+
+          echo Building and packing...
+          dotnet pack --include-symbols -p:SymbolPackageFormat=snupkg -c Release -o $ARTIFACTS_PATH $LIB_DIR/$LIB_NAME
+
+          echo Building and packing...
+          cd $TOOLS_DIR
+          declare -a osTargets=("win-x64" "linux-x64")
+          for i in "${osTargets[@]}"
+          do
+            dotnet publish --runtime $i --no-self-contained -p:PublishProfile=FolderProfile -p:PublishDir=./SkoutTools_$i -c Release $TOOLS_NAME
+            mv SkoutTools_$i/ $ARTIFACTS_PATH/SkoutTools_$i
+          done
+
+      - uses: actions/upload-artifact@master
+        with:
+          name: nuget-package
+          path: |
+            ${{ env.ARTIFACTS_PATH }}/*.nupkg
+            ${{ env.ARTIFACTS_PATH }}/*.snupkg
+
+      - uses: actions/upload-artifact@master
+        with:
+          name: SkoutTools_win-x64
+          path: ${{ env.ARTIFACTS_PATH }}/SkoutTools_win-x64/
+
+      - uses: actions/upload-artifact@master
+        with:
+          name: SkoutTools_linux-x64
+          path: ${{ env.ARTIFACTS_PATH }}/SkoutTools_linux-x64/

@@ -1,0 +1,95 @@
+name: Publish Tools
+
+on:
+  push:
+    tags:
+      - tools_v*
+
+jobs:
+  build_and_publish:
+    name: Build and publish SkoutTools
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      ARTIFACTS_PATH: ${{ github.workspace }}/artifacts
+      LIB_DIR: SkoutLib
+      LIB_NAME: SkoutLib.csproj
+      TOOLS_DIR: SkoutTools
+      TOOLS_NAME: SkoutTools.csproj
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+
+      - name: Nerdbank.GitVersioning
+        uses: dotnet/nbgv@master
+        id: gitversioning
+
+      - name: Setup data
+        id: datavars
+        run: |
+          VERSION_STRING=${GITHUB_REF#refs/tags/tools_v}
+          echo "version=$VERSION_STRING" >> $GITHUB_OUTPUT
+          if  [ grep -q "#" <<< "$VERSION_STRING" ]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get version, build, and publish
+        run: |
+          cd $TOOLS_DIR
+
+          echo Cleaning up...
+          rm -rf $ARTIFACTS_PATH || true
+          mkdir $ARTIFACTS_PATH
+
+          export GIT_BRANCH=${GITHUB_REF#refs/tags/}
+          export VERSION=${{ steps.datavars.outputs.version }}
+
+          echo $VERSION $GIT_BRANCH
+
+          echo Configuring Git...
+          git checkout -B workbranch
+          git branch -D v$VERSION || true
+          git config --global user.email "build@bot.fake.email"
+          git config --global user.name "Buildbot"
+          git checkout -B v$VERSION
+
+          echo Setting version...
+          nbgv set-version $VERSION
+          git commit --all --message="Set version"
+
+          echo Cleaning projects...
+          dotnet clean ${{ github.workspace }}/$LIB_DIR/$LIB_NAME
+          dotnet clean $TOOLS_NAME
+
+          echo Building and packing...
+          declare -a osTargets=("win-x64" "linux-x64")
+          for i in "${osTargets[@]}"
+          do
+            dotnet publish --runtime $i --no-self-contained -p:PublishProfile=FolderProfile -p:PublishDir=./SkoutTools_$i -c Release $TOOLS_NAME
+            7z a -tzip $ARTIFACTS_PATH/SkoutTools_$i.zip SkoutTools_$i/
+          done
+
+      - uses: actions/upload-artifact@master
+        with:
+          name: SkoutTools_win-x64
+          path: ${{ env.ARTIFACTS_PATH }}/SkoutTools_win-x64.zip
+
+      - uses: actions/upload-artifact@master
+        with:
+          name: SkoutTools_linux-x64
+          path: ${{ env.ARTIFACTS_PATH }}/SkoutTools_linux-x64.zip
+
+      - uses: softprops/action-gh-release@v0.1.15
+        with:
+          name: "SkoutTools v${{ steps.datavars.outputs.version }}"
+          prerelease: ${{ steps.datavars.prerelease == 'true' }}
+          generate_release_notes: true
+          files: ${{ env.ARTIFACTS_PATH }}/SkoutTools_*.zip

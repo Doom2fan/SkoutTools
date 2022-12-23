@@ -1,0 +1,86 @@
+name: Publish Library
+
+on:
+  push:
+    tags:
+      - lib_v*
+
+jobs:
+  build_and_publish:
+    name: Build and publish SkoutLib
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      ARTIFACTS_PATH: ${{ github.workspace }}/artifacts
+      LIB_DIR: SkoutLib
+      LIB_NAME: SkoutLib.csproj
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+
+      - name: Nerdbank.GitVersioning
+        uses: dotnet/nbgv@master
+        id: gitversioning
+
+      - name: Setup data
+        id: datavars
+        run: |
+          VERSION_STRING=${GITHUB_REF#refs/tags/lib_v}
+          echo "version=$VERSION_STRING" >> $GITHUB_OUTPUT
+          if  [ grep -q "#" <<< "$VERSION_STRING" ]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get version, build, and publish
+        run: |
+          cd $LIB_DIR
+
+          echo Cleaning up...
+          rm -rf $ARTIFACTS_PATH || true
+          mkdir $ARTIFACTS_PATH
+
+          export GIT_BRANCH=${GITHUB_REF#refs/tags/}
+          export VERSION=${{ steps.datavars.outputs.version }}
+
+          echo $VERSION $GIT_BRANCH
+
+          echo Configuring Git...
+          git checkout -B workbranch
+          git branch -D v$VERSION || true
+          git config --global user.email "build@bot.fake.email"
+          git config --global user.name "Buildbot"
+          git checkout -B v$VERSION
+
+          echo Setting version...
+          nbgv set-version $VERSION
+          git commit --all --message="Set version"
+
+          echo Cleaning projects...
+          dotnet clean $LIB_NAME
+
+          echo Building and packing...
+          dotnet pack --include-symbols -p:SymbolPackageFormat=snupkg -c Release -o $ARTIFACTS_PATH $LIB_NAME
+
+      - uses: actions/upload-artifact@master
+        with:
+          name: "SkoutLib-v${{ steps.datavars.outputs.version }}"
+          path: |
+            ${{ env.ARTIFACTS_PATH }}/*.nupkg
+            ${{ env.ARTIFACTS_PATH }}/*.snupkg
+
+      - uses: softprops/action-gh-release@v0.1.15
+        with:
+          name: "SkoutLib v${{ steps.datavars.outputs.version }}"
+          prerelease: ${{ steps.datavars.prerelease == 'true' }}
+          generate_release_notes: true
+          files: |
+            ${{ env.ARTIFACTS_PATH }}/*.nupkg
+            ${{ env.ARTIFACTS_PATH }}/*.snupkg
