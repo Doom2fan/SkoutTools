@@ -1,0 +1,9 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/Doom2fan/SkoutTools/master/LICENSE.md</PackageLicenseUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright 2021- (c) Chronos "phantombeta" Ouroboros. All rights reserved.</Copyright>
+    <Authors>Chronos "phantombeta" Ouroboros</Authors>
+    <RepositoryUrl>https://github.com/Doom2fan/SkoutTools</RepositoryUrl>
+  </PropertyGroup>
+</Project>
