@@ -26,10 +26,12 @@ static partial class Program {
     private static int Main (string [] args) {
         return Parser.Default.ParseArguments<
             BitUtils.ExtractOptions,
-            BitUtils.ListOptions
+            BitUtils.ListOptions,
+            BitUtils.RepackRawOptions
         > (args).MapResult (
             (BitUtils.ExtractOptions options) => new BitUtils ().ExtractBit (options),
             (BitUtils.ListOptions options) => new BitUtils ().ListBit (options),
+            (BitUtils.RepackRawOptions options) => new BitUtils ().RepackRawBit (options),
             errors => 1
         );
     }
