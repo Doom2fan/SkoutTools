@@ -36,6 +36,7 @@ internal partial class BitUtils {
     }
 
     internal int ListBit (ListOptions options) {
+        options.InputFile = Path.GetFullPath (options.InputFile);
         if (!File.Exists (options.InputFile)) {
             Console.WriteLine ($"The specified input path does not exist.");
             return 1;
