@@ -1,0 +1,41 @@
+//------------------------------------------------
+//      File: Skout_SpriteFile.bt
+//    Author: Chronos Ouroboros
+//   Version: 1.0
+//   Purpose: Parse Skout sprite files.
+//  Category: Game
+//------------------------------------------------
+
+LittleEndian();
+
+local int i;
+struct Skout_Sprite {
+    struct spr3_Header {
+        int Something1;
+        float Duration;
+        float BoundsMin [3];
+        float BoundsMax [3];
+        FSeek (0x24);
+        int SubFileCount;
+        int SubFilePointer;
+        FSeek (0x234);
+        int Pics;
+    } Header <open=true>;
+
+    FSeek (Header.SubFilePointer);
+    int SubFiles [Header.SubFileCount] <format=hex>;
+    int SubFiles2 [Header.SubFileCount] <format=hex>;
+
+    FSkip (0xc);
+    int Something1;
+    int Something2Pointers [Something1];
+
+    local int curPos = FTell ();
+    for (i = 0; i < Something1; i++) {
+        FSeek (Something2Pointers [i]);
+        float Something2;
+    }
+    FSeek (curPos);
+} file <open=true>;
+
+return 0;

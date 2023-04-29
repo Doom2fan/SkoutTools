@@ -1,0 +1,90 @@
+//------------------------------------------------
+//      File: Skout_ModelFile.bt
+//    Author: Chronos Ouroboros
+//   Version: 1.0
+//   Purpose: Parse Skout model files.
+//  Category: Game
+//------------------------------------------------
+
+LittleEndian ();
+
+typedef float Vec3F [3] <read=Str ("(%g %g %g)", this [0], this [1], this [2]),
+                         write=SScanf (value,"(%g %g %g)", this [0], this [1], this [2])>;
+
+typedef int Vertex10 <read=Str ("(%g %g %g)", this & 0x3FF, (this >> 10) & 0x3FF, (this >> 20) & 0x3FF)>;
+
+local int curPos;
+local int i;
+local int j;
+local int offs;
+struct Skout_Model {
+    struct TXobj3 {
+        FSeek (0x04);
+        int VertexSetsCount;
+        int VertexSetPointers [8];
+        int MaterialsCount;
+        int MaterialsPointer;
+        FSeek (0x34);
+        int Huh;
+    } Header <open=true>;
+
+    FSeek (Header.MaterialsPointer);
+    int MaterialsPointers [Header.MaterialsCount] <format=hex>;
+
+    FSeek (Header.MaterialsPointer);
+    struct MaterialsData {
+        for (i = 0; i < Header.MaterialsCount; i++) {
+            FSeek (MaterialsPointers [i]);
+            struct MaterialData {
+                int Unknown1;
+                Vec3F AmbientColor;
+                Vec3F LightColor;
+                Vec3F SomeColor;
+                Vec3F SpecularColor;
+                float Unknown5;
+                float Unknown6;
+                int FileId <format=hex>;
+                uint Unknown7;
+                uint Unknown8;
+                uint Unknown9;
+            } materialData;
+        }
+        FSeek (Header.MaterialsPointer + Header.MaterialsCount * 4);
+    } Materials;
+
+    for (i = 0; i < Header.VertexSetsCount; i++) {
+        FSeek (Header.VertexSetPointers [i]);
+        struct VertexSet {
+            int UnknownPre1;
+            int UnknownPre2;
+            int LightCacheOffs;
+            int TexCoordsOffs;
+            int VertexPosOffs;
+            int VertexNormOffs;
+            int PlaneNormOffs;
+        } vertexSet;
+    }
+
+    for (i = 0; i < Header.VertexSetsCount; i++) {
+        offs = vertexSet [i].VertexPosOffs;
+
+        if (offs < 0)
+            continue;
+
+        FSeek (offs);
+        struct VertexPosData {
+            int VertexCount;
+            int VertexFormat;
+            Vec3F VertexScale;
+            Vec3F VertexOffset;
+            Vec3F BoundsMin;
+            Vec3F BoundsMax;
+            if (VertexFormat == 10)
+                Vertex10 Vertices [VertexCount];
+            else if (VertexFormat == 32)
+                Vec3F Vertices [VertexCount];
+        } vertexPosData;
+    }
+} file <open=true>;
+
+return 0;
