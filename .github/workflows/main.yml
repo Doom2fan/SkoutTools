@@ -66,12 +66,12 @@ jobs:
       - uses: actions/upload-artifact@master
         with:
           name: SkoutTools_win-x64
-          path: ${{ env.ARTIFACTS_PATH }}/SkoutTools_win-x64/
+          path: ${{ env.ARTIFACTS_PATH }}/SkoutTools_win-x64.zip
 
       - uses: actions/upload-artifact@master
         with:
           name: SkoutTools_linux-x64
-          path: ${{ env.ARTIFACTS_PATH }}/SkoutTools_linux-x64/
+          path: ${{ env.ARTIFACTS_PATH }}/SkoutTools_linux-x64.zip
 
       - name: Delete old release assets
         if: ${{ env.PUBLISH_NIGHTLY }}}
@@ -83,7 +83,7 @@ jobs:
           fail-if-no-assets: false
           fail-if-no-release: false
 
-      - name: Upload nightly assets, Library
+      - name: Upload nightly asset
         if: ${{ env.PUBLISH_NIGHTLY }}}
         uses: svenstaro/upload-release-action@v2
         with:
