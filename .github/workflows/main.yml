@@ -1,5 +1,6 @@
 name: CI
-
+permissions:
+  contents: write
 on:
   push:
     branches:
@@ -10,6 +11,11 @@ env:
   LIB_NAME: SkoutLib.csproj
   TOOLS_DIR: SkoutTools
   TOOLS_NAME: SkoutTools.csproj
+  NIGHTLY_TAG: Nightly
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   build:
@@ -22,6 +28,7 @@ jobs:
 
     env:
       ARTIFACTS_PATH: ${{ github.workspace }}/artifacts
+      PUBLISH_NIGHTLY: ${{ github.ref == 'refs/heads/master' && github.repository_owner == 'Doom2fan' }}
 
     steps:
       - uses: actions/checkout@master
@@ -37,16 +44,16 @@ jobs:
           dotnet clean $LIB_DIR/$LIB_NAME
           dotnet clean $TOOLS_DIR/$TOOLS_NAME
 
-          echo Building and packing...
+          echo Building and packing library...
           dotnet pack --include-symbols -p:SymbolPackageFormat=snupkg -c Release -o $ARTIFACTS_PATH $LIB_DIR/$LIB_NAME
 
-          echo Building and packing...
+          echo Building and packing tools...
           cd $TOOLS_DIR
           declare -a osTargets=("win-x64" "linux-x64")
           for i in "${osTargets[@]}"
           do
             dotnet publish --runtime $i --no-self-contained -p:PublishProfile=FolderProfile -p:PublishDir=./SkoutTools_$i -c Release $TOOLS_NAME
-            mv SkoutTools_$i/ $ARTIFACTS_PATH/SkoutTools_$i
+            7z a -tzip $ARTIFACTS_PATH/SkoutTools_$i.zip SkoutTools_$i/
           done
 
       - uses: actions/upload-artifact@master
@@ -65,3 +72,31 @@ jobs:
         with:
           name: SkoutTools_linux-x64
           path: ${{ env.ARTIFACTS_PATH }}/SkoutTools_linux-x64/
+
+      - name: Delete old release assets
+        if: ${{ env.PUBLISH_NIGHTLY }}}
+        uses: mknejp/delete-release-assets@v1
+        with:
+          token: ${{ github.token }}
+          tag: ${{ env.NIGHTLY_TAG }}
+          assets: '*'
+          fail-if-no-assets: false
+          fail-if-no-release: false
+
+      - name: Upload nightly assets, Library
+        if: ${{ env.PUBLISH_NIGHTLY }}}
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.ARTIFACTS_PATH }}/*
+          tag: ${{ env.NIGHTLY_TAG }}
+          file_glob: true
+          prerelease: true
+
+      - name: Tag Repo
+        if: ${{ env.PUBLISH_NIGHTLY }}}
+        uses: richardsimko/update-tag@v1.0.7
+        with:
+          tag_name: ${{ env.NIGHTLY_TAG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
