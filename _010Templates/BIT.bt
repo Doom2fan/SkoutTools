@@ -11,10 +11,15 @@
 LittleEndian();
 
 typedef enum <byte> {
-    Copy  = 0,
-    RLE   = 1,
-    LZRLE = 2,
+    Compression_Copy  = 0,
+    Compression_RLE   = 1,
+    Compression_LZRLE = 2,
 } BIT_CompressionMode;
+
+typedef enum <ubyte> {
+    BITF_None = 0,
+    BITF_SimpleHeader = 1,
+} BIT_Flags;
 
 struct BIT_File {
     struct BIT_Header {
@@ -24,7 +29,12 @@ struct BIT_File {
             Exit (-1);
         }
 
-        ushort Revision;
+        ubyte Revision;
+        BIT_Flags Flags;
+        if ((Flags & BITF_SimpleHeader) == 0) {
+            Warning ("Only \"simple\" BIT files supported.");
+            Exit (0);
+        }
         uint EntryCount;
     } header;
 
@@ -34,7 +44,7 @@ struct BIT_File {
         uint Offset;
         uint Length;
         uint Hash <format=hex>;
-        byte FileIdentA <format=hex>;
+        ubyte FileIdentA <format=hex>;
     } entries [header.EntryCount] <read=ReadBITEntry>;
     local int directoryEnd = FTell ();
 
@@ -45,7 +55,8 @@ struct BIT_File {
             FSeek (entries [i].Offset);
             struct BIT_EntryData {
                 BIT_CompressionMode CompressionMode;
-                byte FileIdent [3] <format=hex>;
+                typedef ubyte FileIdentType [3] <format=hex, read=Str ("%.2X:%.2X:%.2X", this [0], this [1], this [2])>;
+                FileIdentType FileIdent;
                 uint Length;
                 ushort UncompressedBytes;
             } entryData;
@@ -55,9 +66,7 @@ struct BIT_File {
 } file <open=true>;
 
 string ReadBITEntry (BIT_Entry &entry) {
-    string ret;
-    SPrintf (ret, "%8X", entry.Id);
-    return ret;
+    return Str ("%.8X.%.8X", entry.Id, entry.Hash);
 }
 
 return 0;
